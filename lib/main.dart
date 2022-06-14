@@ -18,6 +18,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Expense App',
       theme: ThemeData(
         textTheme: const TextTheme(
@@ -76,11 +77,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _startAddNewTransaction(BuildContext context) {
     showModalBottomSheet(
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(10.0),
-        ),
-      ),
+      backgroundColor: Platform.isIOS
+          ? const Color.fromRGBO(250, 250, 250, 1)
+          : Colors.white,
+      shape: Platform.isAndroid
+          ? const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(10.0),
+              ),
+            )
+          : null,
       context: context,
       builder: (_) {
         return NewTransaction(addTransaction: _addNewTransaction);
@@ -124,7 +130,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ) as PreferredSizeWidget
         : AppBar(
             title: const Text(
-              'Flutter App',
+              'Expense App',
             ),
             actions: [
               IconButton(
