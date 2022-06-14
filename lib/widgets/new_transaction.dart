@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -14,23 +17,71 @@ class _NewTransactionState extends State<NewTransaction> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
 
-  DateTime? _selectedDate;
+  DateTime _selectedDate = DateTime.now();
+
+  void _showDialog(Widget child) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (BuildContext context) => Container(
+        height: 350,
+        color: const Color.fromRGBO(255, 255, 255, 1),
+        child: Column(
+          children: [
+            Expanded(
+              flex: 4,
+              child: Container(
+                color: CupertinoColors.systemBackground.resolveFrom(context),
+                child: child,
+              ),
+            ),
+            Expanded(
+              flex: 1,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 10.0),
+                child: CupertinoButton(
+                    child: const Text('done'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    }),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
 
   void _presentDatePicker() {
-    showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2019),
-      lastDate: DateTime.now(),
-    ).then((pickedDate) {
-      if (pickedDate == null) {
-        return;
-      }
+    if (Platform.isIOS) {
+      _showDialog(
+        CupertinoDatePicker(
+          initialDateTime: DateTime.now(),
+          minimumDate: DateTime(2019),
+          maximumDate: DateTime.now(),
+          mode: CupertinoDatePickerMode.date,
+          use24hFormat: true,
+          // This is called when the user changes the date.
+          onDateTimeChanged: (DateTime newDate) {
+            setState(() => _selectedDate = newDate);
+          },
+        ),
+      );
+    } else {
+      showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(2019),
+        lastDate: DateTime.now(),
+      ).then((pickedDate) {
+        if (pickedDate == null) {
+          return;
+        }
 
-      setState(() {
-        _selectedDate = pickedDate;
+        setState(() {
+          _selectedDate = pickedDate;
+        });
       });
-    });
+    }
   }
 
   @override
@@ -41,7 +92,7 @@ class _NewTransactionState extends State<NewTransaction> {
           top: 15,
           left: 15,
           right: 15,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 30,
         ),
         child: Column(
           children: [
@@ -65,9 +116,7 @@ class _NewTransactionState extends State<NewTransaction> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _selectedDate == null
-                        ? 'No Date Chosen'
-                        : 'Date Picked: ${DateFormat.yMd().format(_selectedDate!)}',
+                    'Date Picked: ${DateFormat.yMd().format(_selectedDate)}',
                   ),
                   TextButton(
                     onPressed: _presentDatePicker,
@@ -82,38 +131,56 @@ class _NewTransactionState extends State<NewTransaction> {
                 ],
               ),
             ),
-            TextButton(
-              style: ButtonStyle(
-                padding: MaterialStateProperty.all(
-                  const EdgeInsets.symmetric(
-                    vertical: 10.0,
-                    horizontal: 25.0,
+            if (Platform.isIOS) ...[
+              CupertinoButton(
+                onPressed: () {
+                  var title = _titleController.text;
+                  var amount = double.parse(_amountController.text);
+                  if (title.isEmpty || amount <= 0) return;
+
+                  widget.addTransaction(
+                    title,
+                    amount,
+                    _selectedDate,
+                  );
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Add transaction'),
+              )
+            ],
+            if (!Platform.isIOS) ...[
+              TextButton(
+                style: ButtonStyle(
+                  padding: MaterialStateProperty.all(
+                    const EdgeInsets.symmetric(
+                      vertical: 10.0,
+                      horizontal: 25.0,
+                    ),
+                  ),
+                  backgroundColor:
+                      MaterialStateProperty.all<Color>(Colors.purple),
+                ),
+                child: const Text(
+                  'Add Transaction ',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                backgroundColor:
-                    MaterialStateProperty.all<Color>(Colors.purple),
-              ),
-              child: const Text(
-                'Add Transaction ',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              onPressed: () {
-                var title = _titleController.text;
-                var amount = double.parse(_amountController.text);
-                if (title.isEmpty || amount <= 0 || _selectedDate == null)
-                  return;
+                onPressed: () {
+                  var title = _titleController.text;
+                  var amount = double.parse(_amountController.text);
+                  if (title.isEmpty || amount <= 0) return;
 
-                widget.addTransaction(
-                  title,
-                  amount,
-                  _selectedDate,
-                );
-                Navigator.of(context).pop();
-              },
-            )
+                  widget.addTransaction(
+                    title,
+                    amount,
+                    _selectedDate,
+                  );
+                  Navigator.of(context).pop();
+                },
+              )
+            ]
           ],
         ),
       ),
